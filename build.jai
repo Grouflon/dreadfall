@@ -1,6 +1,6 @@
 #run build();
 
-BUILD_NAME :: "bootstrap";
+BUILD_NAME :: "dreadfall";
 BUILD_OUTPUT_DIRECTORY :: "bin";
 
 build :: ()
