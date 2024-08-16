@@ -1,0 +1,1 @@
+- Check the #import,dir directive to maybe have yae include its own dependencies

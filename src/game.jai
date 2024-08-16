@@ -1,6 +1,14 @@
+GROUND_HEIGHT :: 400;
+
 Game :: struct
 {
+    bird_data: *AsepriteData;
+    bird_texture: rl.Texture2D;
 
+    bird: Bird;
+
+    bird_idle: Animation;
+    bird_run: Animation;
 }
 
 game_run :: (using game: *Game)
@@ -38,10 +46,29 @@ game_initialize :: (using game: *Game)
         font_file = "data/fonts/monoOne.otf",
         font_size = 17,
     });
+
+    bird_data = aseprite_load_data("data/sprites/bird.json");
+    bird_texture = rl.LoadTexture(temp_c_string(bird_data.image_path));
+
+    found: bool;
+    bird_idle.data = bird_data;
+    bird_idle.texture = bird_texture;
+    bird_idle.index, found = table_find(*bird_data.name_to_tag, "idle");
+    if !found bird_idle.index = -1;
+
+    bird_run.data = bird_data;
+    bird_run.texture = bird_texture;
+    bird_run.index, found = table_find(*bird_data.name_to_tag, "run");
+    if !found bird_run.index = -1;
+
+    bird_init(*bird);
 }
 
 game_shutdown :: (using game: *Game)
 {
+    aseprite_release_data(bird_data);
+    rl.UnloadTexture(bird_texture);
+
     raylib_imgui_shutdown();
 
     rl.CloseWindow();
@@ -54,7 +81,8 @@ game_should_exit :: (using game: *Game) -> bool
 
 game_update :: (using game: *Game, dt: float)
 {
-    ImGui.ShowDemoWindow();
+    bird_update(*bird);
+    // ImGui.ShowDemoWindow();
 }
 
 game_draw :: (using game: *Game)
@@ -63,6 +91,15 @@ game_draw :: (using game: *Game)
     defer rl.EndDrawing();
 
     rl.ClearBackground(rl.LIGHTGRAY);
+
+    {
+        game_camera: = rl.Camera2D.{ zoom = 2 };
+        rl.BeginMode2D(game_camera);
+        defer rl.EndMode2D();
+
+        rl.DrawRectangleV(.{0, GROUND_HEIGHT}, .{5000, 500}, rl.DARKGRAY);
+        bird_draw(*bird);
+    }
 
     raylib_imgui_render();
 

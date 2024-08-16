@@ -29,10 +29,14 @@ main :: ()
 
 // Loads
 #load "game.jai";
+#load "bird.jai";
 
 // Global imports
 #import "Basic"()(MEMORY_DEBUGGER = DEBUG_MEMORY);
 #import "yae";
+#import "Math";
+#import "Hash_Table";
+
 rl :: #import "raylib";
 ImGui :: #import "ImGui";
 
