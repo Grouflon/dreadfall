@@ -1,11 +1,56 @@
 // Build Parameters
 DEBUG_MEMORY :: true;
 
+Test :: struct
+{
+    _bool: bool;
+    _s8: s8;
+    _s16: s16;
+    _s32: s32;
+    _s64: s64;
+    _u8: u8;
+    _u16: u16;
+    _u32: u32;
+    _u64: u64;
+    _int: int;
+    _float32: float32;
+    _float64: float64;
+    _float: float;
+    _string: string;
+}
+
+test_serializer :: ()
+{
+    test: = Test.{
+        true,
+        1,2,3,4,
+        5,6,7,8,
+        9,
+        43.2,53.3,
+        67.1515,
+        "hello"
+    };
+
+    serializer: JsonSerializer;
+    serializer_begin(*serializer, .WRITE);
+    assert(serialize(*serializer, *test));
+    serializer_end(*serializer);
+
+    test2: Test;
+    serializer_begin(*serializer, .READ);
+    assert(serialize(*serializer, *test2));
+    serializer_end(*serializer);
+
+    print("%\n", test2);
+}
+
 // Globals
 game: Game;
 
 main :: ()
 {
+    test_serializer();
+
     // normalize working directory
     {
         exe_directory: = path_strip_filename(get_path_of_running_executable());
