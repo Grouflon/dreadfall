@@ -17,19 +17,39 @@ Test :: struct
     _float64: float64;
     _float: float;
     _string: string;
+    _nested: Nested;
+    _array_fixed: [4]s8;
+    _array_view: []s8;
+    _array_dynamic: [..]s8;
+}
+
+Nested :: struct
+{
+    a: int;
+    b: float; 
 }
 
 test_serializer :: ()
 {
-    test: = Test.{
-        true,
-        1,2,3,4,
-        5,6,7,8,
-        9,
-        43.2,53.3,
-        67.1515,
-        "hello"
-    };
+    test: Test;
+    test._bool = true;
+    test._s8 = -8;
+    test._s16 = -16;
+    test._s32 = -32;
+    test._s64 = -64;
+    test._u8 = 8;
+    test._u16 = 16;
+    test._u32 = 32;
+    test._u64 = 64;
+    test._int = 42;
+    test._float32 = 32.32;
+    test._float64 = 64.64;
+    test._float = 42.42;
+    test._string = "hello";
+    test._nested = .{ 12, 45.65 };
+    test._array_fixed = .[1, 2, 3, 4];
+    test._array_view = .[5, 6];
+    array_add(*test._array_dynamic, 12);
 
     serializer: JsonSerializer;
     serializer_begin(*serializer, .WRITE);
@@ -42,10 +62,12 @@ test_serializer :: ()
     serializer_end(*serializer);
 
     print("%\n", test2);
-}
 
-// Globals
-game: Game;
+    free(test2._string);
+    free(test2._array_view.data);
+    array_free(test._array_dynamic);
+    array_free(test2._array_dynamic);
+}
 
 main :: ()
 {

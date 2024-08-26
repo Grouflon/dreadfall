@@ -1,5 +1,10 @@
 GROUND_HEIGHT :: 400;
 
+GameSettings :: struct
+{
+    bird_max_speed: float = 8.0;
+}
+
 Game :: struct
 {
     bird_data: *AsepriteData;
@@ -9,6 +14,16 @@ Game :: struct
 
     bird_idle: Animation;
     bird_run: Animation;
+
+    settings: GameSettings;
+}
+
+// Globals
+game: Game;
+
+settings :: () -> *GameSettings
+{
+    return *game.settings;
 }
 
 game_run :: (using game: *Game)
@@ -31,6 +46,8 @@ game_run :: (using game: *Game)
 
 #scope_file
 
+GAME_SETTINGS_PATH :: "data/settings.json";
+
 game_initialize :: (using game: *Game)
 {
     window_flags: rl.ConfigFlags;
@@ -40,6 +57,9 @@ game_initialize :: (using game: *Game)
     rl.SetWindowState(xx window_flags);
     rl.SetTargetFPS(60);
     rl.SetExitKey(.KEY_NULL);
+
+    load_game_settings(GAME_SETTINGS_PATH, *game.settings);
+    save_game_settings(GAME_SETTINGS_PATH, *game.settings);
 
     raylib_imgui_init(.{
         theme = ImGuiTheme.DARK,
@@ -105,3 +125,30 @@ game_draw :: (using game: *Game)
 
     rl.DrawFPS(rl.GetScreenWidth() - 90, 10);     
 }
+
+load_game_settings :: (path: string, settings: *GameSettings)
+{
+    serializer: JsonSerializer;
+    if !json_serializer_open_json_file(*serializer, path) { return; }
+
+    serializer_begin(*serializer, .READ);
+    serialize(*serializer, settings);
+    serializer_end(*serializer);
+
+    log("Loaded settings \"%\".", path);
+}
+
+save_game_settings :: (path: string, settings: *GameSettings)
+{
+    serializer: JsonSerializer;
+
+    serializer_begin(*serializer, .WRITE);
+    serialize(*serializer, settings);
+    serializer_end(*serializer);
+
+    json_serializer_write_json_file(*serializer, path);
+
+    log("Saved settings \"%\".", path);
+}
+
+#import "File";

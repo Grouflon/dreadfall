@@ -13,7 +13,6 @@ bird_init :: (using bird: *Bird)
 
 bird_update :: (using bird: *Bird)
 {
-    speed :: 8.0;
     direction: = 0.0; 
     if rl.IsKeyDown(.KEY_LEFT) direction -= 1.0;
     if rl.IsKeyDown(.KEY_RIGHT) direction += 1.0;
@@ -27,7 +26,7 @@ bird_update :: (using bird: *Bird)
         last_direction = direction;
         animation_player_play(*player, game.bird_run);
     }
-    position.x += direction * speed;
+    position.x += direction * settings().bird_max_speed;
 
     animation_player_update(*player, 0.03);
 }
