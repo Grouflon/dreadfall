@@ -7,7 +7,7 @@ Bird :: struct
 
 bird_init :: (using bird: *Bird)
 {
-    position = .{100, GROUND_HEIGHT};
+    position = .{0, GROUND_HEIGHT};
     animation_player_play(*player, game.bird_run);
 }
 
@@ -33,7 +33,7 @@ bird_update :: (using bird: *Bird)
 
 bird_draw :: (using bird: *Bird)
 {
-    draw_position: = position - .{32, 49};
+    draw_position: = position - .{32, 15};
     flip: = last_direction < 0.0;
     animation_player_draw(*player, draw_position, flip);
     // rl.DrawCircleV(position, 2.0, rl.RED);

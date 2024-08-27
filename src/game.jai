@@ -1,4 +1,4 @@
-GROUND_HEIGHT :: 400;
+GROUND_HEIGHT :: 0;
 
 GameSettings :: struct
 {
@@ -16,6 +16,8 @@ Game :: struct
     bird_run: Animation;
 
     settings: GameSettings;
+
+    viewport: PixelPerfectViewport;
 }
 
 // Globals
@@ -57,6 +59,13 @@ game_initialize :: (using game: *Game)
     rl.SetWindowState(xx window_flags);
     rl.SetTargetFPS(60);
     rl.SetExitKey(.KEY_NULL);
+
+    viewport = .{
+        min_render_width = 512,
+        min_render_height = 256,
+        min_pixel_ratio = 2,
+        max_pixel_ratio = 3,
+    };
 
     load_game_settings(GAME_SETTINGS_PATH, *game.settings);
     save_game_settings(GAME_SETTINGS_PATH, *game.settings);
@@ -101,29 +110,44 @@ game_should_exit :: (using game: *Game) -> bool
 
 game_update :: (using game: *Game, dt: float)
 {
+    viewport_update(*game.viewport);
+
     bird_update(*bird);
     // ImGui.ShowDemoWindow();
 }
 
 game_draw :: (using game: *Game)
 {
-    rl.BeginDrawing();
-    defer rl.EndDrawing();
-
-    rl.ClearBackground(rl.LIGHTGRAY);
+    background_color: = rl.LIGHTGRAY;
 
     {
-        game_camera: = rl.Camera2D.{ zoom = 2 };
-        rl.BeginMode2D(game_camera);
-        defer rl.EndMode2D();
+        viewport.camera.target = .{ 0.0, 70.0 };
+        viewport_begin_render(viewport);
+        defer viewport_end_render(viewport);
 
-        rl.DrawRectangleV(.{0, GROUND_HEIGHT}, .{5000, 500}, rl.DARKGRAY);
+        rl.ClearBackground(background_color);
+
+        rl.DrawRectangleV(.{-1000, GROUND_HEIGHT - 500}, .{2000, 500}, rl.DARKGRAY);
         bird_draw(*bird);
+
+        GIZMO_SIZE :: 20.0;
+        rl.DrawLineEx(.{}, .{ 1.0, 0.0 } * GIZMO_SIZE, 2, rl.RED);
+        rl.DrawLineEx(.{}, .{ 0.0, 1.0 } * GIZMO_SIZE, 2, rl.GREEN);
     }
 
-    raylib_imgui_render();
+    {
+        rl.BeginDrawing();
+        defer rl.EndDrawing();
 
-    rl.DrawFPS(rl.GetScreenWidth() - 90, 10);     
+        render_camera: = rl.Camera2D.{ zoom = 1.0 };
+        rl.BeginMode2D(render_camera);
+        defer rl.EndMode2D();
+
+        viewport_draw(viewport);
+
+        rl.DrawFPS(rl.GetScreenWidth() - 90, 10);
+        raylib_imgui_render();
+    }
 }
 
 load_game_settings :: (path: string, settings: *GameSettings)
