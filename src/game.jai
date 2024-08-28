@@ -2,7 +2,7 @@ GROUND_HEIGHT :: 0;
 
 GameSettings :: struct
 {
-    bird_max_speed: float = 8.0;
+    bird_max_speed: float = 8.0; @drag @step=0.1 @min=0 @max=200
 }
 
 Game :: struct
