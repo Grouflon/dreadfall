@@ -110,6 +110,15 @@ game_should_exit :: (using game: *Game) -> bool
 
 game_update :: (using game: *Game, dt: float)
 {
+    if ImGui.Begin("settings")
+    {
+        if imgui_edit("settings", *game.settings)
+        {
+            save_game_settings(GAME_SETTINGS_PATH, *game.settings);
+        }
+    }
+    ImGui.End();
+
     viewport_update(*game.viewport);
 
     bird_update(*bird);
