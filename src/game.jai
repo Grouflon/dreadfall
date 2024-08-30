@@ -56,6 +56,8 @@ game_initialize :: (using game: *Game)
     rl.SetTargetFPS(60);
     rl.SetExitKey(.KEY_NULL);
 
+    resource_manager_init();
+
     viewport = .{
         min_render_width = 512,
         min_render_height = 256,
@@ -81,6 +83,8 @@ game_shutdown :: (using game: *Game)
 
     raylib_imgui_shutdown();
 
+    resource_manager_shutdown();
+
     rl.CloseWindow();
 }
 
@@ -91,6 +95,8 @@ game_should_exit :: (using game: *Game) -> bool
 
 game_update :: (using game: *Game, dt: float)
 {
+    resource_manager_update();
+
     if ImGui.Begin("settings")
     {
         if imgui_edit("settings", *game.settings)
