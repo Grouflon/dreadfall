@@ -1,5 +1,45 @@
 {
-	"bird_acceleration": 0.7,
+	"bird_acceleration": 1,
 	"bird_deceleration": 1,
-	"bird_max_speed": 8
+	"bird_max_speed": 8,
+	"iterations": 1,
+	"spline": {
+		"is_looping": true,
+		"points": [
+			{
+				"backward_tangent": [
+					6.007462,
+					-20.333336
+				],
+				"forward_tangent": [
+					6.007462,
+					179.666718
+				],
+				"point": [
+					6.007462,
+					79.666672
+				]
+			},
+			{
+				"backward_tangent": [
+					29.578735,
+					30.999985
+				],
+				"forward_tangent": [
+					95.077515,
+					162.666595
+				],
+				"point": [
+					230.037506,
+					71.666656
+				]
+			}
+		]
+	},
+	"spline_editor_settings": {
+		"point_handle_size": 7,
+		"selection_threshold": 5,
+		"tangent_handle_size": 5
+	},
+	"spline_initialized": true
 }

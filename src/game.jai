@@ -5,6 +5,12 @@ GameSettings :: struct
     bird_max_speed: float = 8.0; @drag @step=0.1 @min=0
     bird_acceleration: float = 1.0; @drag @step=0.1 @min=0
     bird_deceleration: float = 1.0; @drag @step=0.1 @min=0
+
+    spline_initialized: bool = false;
+    spline: Spline2D;
+    iterations: int = 1; @drag @min=1
+
+    spline_editor_settings: SplineEditorSettings;
 }
 
 Game :: struct
@@ -46,8 +52,13 @@ game_run :: (using game: *Game)
 
 GAME_SETTINGS_PATH :: "data/settings.json";
 
+spline_editor: SplineEditor;
+time: float;
+
 game_initialize :: (using game: *Game)
 {
+    spline_editor.spline = *settings.spline;
+
     window_flags: rl.ConfigFlags;
     window_flags |= .FLAG_WINDOW_RESIZABLE;
 
@@ -66,6 +77,14 @@ game_initialize :: (using game: *Game)
     };
 
     load_game_settings(GAME_SETTINGS_PATH, *game.settings);
+    if !settings.spline_initialized
+    {
+        spline_add_point(*settings.spline, .{0, 0}, .{0, 100});
+        spline_add_point(*settings.spline, .{200, 200}, .{300, 300});
+        settings.spline.is_looping = true;
+        settings.spline_initialized = true;
+    }
+
     save_game_settings(GAME_SETTINGS_PATH, *game.settings);
 
     raylib_imgui_init(.{
@@ -95,13 +114,15 @@ game_should_exit :: (using game: *Game) -> bool
 
 game_update :: (using game: *Game, dt: float)
 {
+    time += dt;
     resource_manager_update();
+    settings_modified: = false;
 
     if ImGui.Begin("settings")
     {
         if imgui_edit("settings", *game.settings)
         {
-            save_game_settings(GAME_SETTINGS_PATH, *game.settings);
+            settings_modified = true;
         }
     }
     ImGui.End();
@@ -109,6 +130,23 @@ game_update :: (using game: *Game, dt: float)
     viewport_update(*game.viewport);
 
     bird_update(*bird);
+
+    mouse_state: = MouseState.{
+        position = screen_to_world_position(*viewport, rl.GetMousePosition()),
+        left_button_down = rl.IsMouseButtonDown(0),
+        right_button_down = rl.IsMouseButtonDown(1),
+    };
+    ImGui.Text(tprint("%", mouse_state.position));
+    spline_editor.settings = settings.spline_editor_settings;
+    if spline_editor_update(*spline_editor, mouse_state)
+    {
+        settings_modified = true;
+    }
+
+    if settings_modified
+    {
+        save_game_settings(GAME_SETTINGS_PATH, *game.settings);
+    }
     // ImGui.ShowDemoWindow();
 }
 
@@ -129,6 +167,29 @@ game_draw :: (using game: *Game)
         GIZMO_SIZE :: 20.0;
         rl.DrawLineEx(.{}, .{ 1.0, 0.0 } * GIZMO_SIZE, 2, rl.RED);
         rl.DrawLineEx(.{}, .{ 0.0, 1.0 } * GIZMO_SIZE, 2, rl.GREEN);
+
+        spline_editor_draw(*spline_editor);
+
+        p: = spline_sample_position(*settings.spline, positive_mod(time / 5.0, 1.0));
+        rl.DrawCircleV(p, 4.0, rl.GREEN);
+
+        mouse_position: = screen_to_world_position(*viewport, rl.GetMousePosition());
+        // points: [4]Vector2;
+        // points[0] = spline.points[0].point;
+        // points[1] = spline.points[0].forward_tangent;
+        // points[2] = spline.points[1].backward_tangent;
+        // points[3] = spline.points[1].point;
+        // p2: = approximate_closest_point_on_bezier_curve(mouse_position, points, settings.iterations);
+        p2: = spline_find_closest_position(*settings.spline, mouse_position);
+        rl.DrawLineV(mouse_position, p2, rl.RED);
+        rl.DrawCircleV(p2, 3.0, rl.RED);
+
+        {
+            segment: [2]Vector2 = .[.{0, 0}, .{125, -30}];
+            // rl.DrawLineV(segment[0], segment[1], rl.YELLOW);
+            p3: = find_closest_point_on_segment(mouse_position, segment[0], segment[1]);
+            // rl.DrawCircleV(p3, 3.0, rl.BLUE);
+        }
     }
 
     {
@@ -140,6 +201,7 @@ game_draw :: (using game: *Game)
         defer rl.EndMode2D();
 
         viewport_draw(viewport);
+
 
         rl.DrawFPS(rl.GetScreenWidth() - 90, 10);
         raylib_imgui_render();
