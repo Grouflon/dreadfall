@@ -6,9 +6,11 @@ GameSettings :: struct
     bird_acceleration: float = 1.0; @drag @step=0.1 @min=0
     bird_deceleration: float = 1.0; @drag @step=0.1 @min=0
 
+    curve_initialized: bool = false;
+    curve: Curve;
+
     spline_initialized: bool = false;
     spline: Spline2D;
-    iterations: int = 1; @drag @min=1
 
     spline_editor_settings: SplineEditorSettings;
 }
@@ -85,6 +87,13 @@ game_initialize :: (using game: *Game)
         settings.spline_initialized = true;
     }
 
+    if !settings.curve_initialized
+    {
+        array_add(*settings.curve.points, .{ .{0,0}, 1.0, 0.0 });
+        array_add(*settings.curve.points, .{ .{1,1}, 0.0, -1.0 });
+        settings.curve_initialized = true;
+    }
+
     save_game_settings(GAME_SETTINGS_PATH, *game.settings);
 
     raylib_imgui_init(.{
@@ -147,7 +156,7 @@ game_update :: (using game: *Game, dt: float)
     {
         save_game_settings(GAME_SETTINGS_PATH, *game.settings);
     }
-    // ImGui.ShowDemoWindow();
+    ImGui.ShowDemoWindow();
 }
 
 game_draw :: (using game: *Game)
@@ -174,20 +183,14 @@ game_draw :: (using game: *Game)
         rl.DrawCircleV(p, 4.0, rl.GREEN);
 
         mouse_position: = screen_to_world_position(*viewport, rl.GetMousePosition());
-        // points: [4]Vector2;
-        // points[0] = spline.points[0].point;
-        // points[1] = spline.points[0].forward_tangent;
-        // points[2] = spline.points[1].backward_tangent;
-        // points[3] = spline.points[1].point;
-        // p2: = approximate_closest_point_on_bezier_curve(mouse_position, points, settings.iterations);
         p2: = spline_find_closest_position(*settings.spline, mouse_position);
         rl.DrawLineV(mouse_position, p2, rl.RED);
         rl.DrawCircleV(p2, 3.0, rl.RED);
 
         {
-            segment: [2]Vector2 = .[.{0, 0}, .{125, -30}];
+            // segment: [2]Vector2 = .[.{0, 0}, .{125, -30}];
             // rl.DrawLineV(segment[0], segment[1], rl.YELLOW);
-            p3: = find_closest_point_on_segment(mouse_position, segment[0], segment[1]);
+            // p3: = find_closest_point_on_segment(mouse_position, segment[0], segment[1]);
             // rl.DrawCircleV(p3, 3.0, rl.BLUE);
         }
     }

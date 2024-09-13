@@ -2,36 +2,57 @@
 	"bird_acceleration": 1,
 	"bird_deceleration": 1,
 	"bird_max_speed": 8,
-	"iterations": 1,
+	"curve": {
+		"extrapolation": "CLAMP",
+		"points": [
+			{
+				"back_tangent": 0,
+				"front_tangent": 1,
+				"position": [
+					0,
+					0
+				]
+			},
+			{
+				"back_tangent": -5,
+				"front_tangent": 0,
+				"position": [
+					1,
+					1
+				]
+			}
+		]
+	},
+	"curve_initialized": true,
 	"spline": {
 		"is_looping": true,
 		"points": [
 			{
 				"backward_tangent": [
-					6.007462,
-					-20.333336
+					66.749954,
+					33
 				],
 				"forward_tangent": [
-					6.007462,
-					179.666718
+					-17.355042,
+					187.000061
 				],
 				"point": [
-					6.007462,
-					79.666672
+					-17.355057,
+					131.000061
 				]
 			},
 			{
 				"backward_tangent": [
-					29.578735,
-					30.999985
+					226.824982,
+					234.333344
 				],
 				"forward_tangent": [
-					95.077515,
-					162.666595
+					138.465057,
+					44.999893
 				],
 				"point": [
-					230.037506,
-					71.666656
+					240.050049,
+					151.666641
 				]
 			}
 		]
