@@ -145,7 +145,6 @@ game_update :: (using game: *Game, dt: float)
         left_button_down = rl.IsMouseButtonDown(0),
         right_button_down = rl.IsMouseButtonDown(1),
     };
-    ImGui.Text(tprint("%", mouse_state.position));
     spline_editor.settings = settings.spline_editor_settings;
     if spline_editor_update(*spline_editor, mouse_state)
     {
