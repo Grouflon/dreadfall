@@ -4,3 +4,4 @@ bin
 *.rdbg
 imgui.ini
 modules/ImGui/src
+data/editor_settings.json

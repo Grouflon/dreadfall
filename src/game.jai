@@ -52,6 +52,7 @@ game_run :: (using game: *Game)
 
 #scope_file
 
+EDITOR_SETTINGS_PATH :: "data/editor_settings.json";
 GAME_SETTINGS_PATH :: "data/settings.json";
 
 spline_editor: SplineEditor;
@@ -95,6 +96,9 @@ game_initialize :: (using game: *Game)
     }
 
     save_game_settings(GAME_SETTINGS_PATH, *game.settings);
+
+    load_editor_settings(EDITOR_SETTINGS_PATH);
+    save_editor_settings(EDITOR_SETTINGS_PATH, make_editor_settings());
 
     raylib_imgui_init(.{
         theme = ImGuiTheme.DARK,
@@ -155,6 +159,12 @@ game_update :: (using game: *Game, dt: float)
     {
         save_game_settings(GAME_SETTINGS_PATH, *game.settings);
     }
+
+    editor_settings: = make_editor_settings();
+    if memcmp(*editor_settings, *last_editor_settings, size_of(EditorSettings)) != 0
+    {
+        save_editor_settings(EDITOR_SETTINGS_PATH, editor_settings);
+    }
     ImGui.ShowDemoWindow();
 }
 
@@ -210,6 +220,134 @@ game_draw :: (using game: *Game)
     }
 }
 
+EditorSettings :: struct
+{
+    game_window_initialized: bool;
+    game_window_x: int;
+    game_window_y: int;
+    game_window_width: int;
+    game_window_height: int;
+
+    console_initialized: bool;
+    console_x: int;
+    console_y: int;
+    console_width: int;
+    console_height: int;
+
+    debugger_initialized: bool;
+    debugger_x: int;
+    debugger_y: int;
+    debugger_width: int;
+    debugger_height: int;
+}
+
+last_editor_settings: EditorSettings;
+
+searched_for_debugger: bool;
+debugger_window_handle: *void;
+get_debugger_window_handle :: () -> *void
+{
+    if !searched_for_debugger
+    {
+        debugger_window_handle = find_window_by_title_containing("RemedyBG");
+        searched_for_debugger = true;
+    }
+    return debugger_window_handle;
+}
+
+make_editor_settings :: () -> EditorSettings
+{
+    settings: EditorSettings;
+
+    {
+        position: = rl.GetWindowPosition();
+        settings.game_window_x = xx position.x;
+        settings.game_window_y = xx position.y;
+        settings.game_window_width = rl.GetRenderWidth();
+        settings.game_window_height = rl.GetRenderHeight();
+        settings.game_window_initialized = true;
+    }
+
+    {
+        handle: = get_console_window_handle();
+        if handle != null
+        {
+            x, y, w, h: = get_window_position(handle);
+            settings.console_x = x;
+            settings.console_y = y;
+            settings.console_width = w;
+            settings.console_height = h;
+            settings.console_initialized = true;
+        }
+    }
+
+    {
+        handle: = get_debugger_window_handle();
+        if handle != null
+        {
+            x, y, w, h: = get_window_position(handle);
+            settings.debugger_x = x;
+            settings.debugger_y = y;
+            settings.debugger_width = w;
+            settings.debugger_height = h;
+            settings.debugger_initialized = true;
+        }
+    }
+
+    return settings;
+}
+
+load_editor_settings :: (path: string)
+{
+    serializer: JsonSerializer;
+    if !json_serializer_open_json_file(*serializer, path) { return; }
+
+    settings: EditorSettings;
+    serializer_begin(*serializer, .READ);
+    serialize(*serializer, *settings);
+    serializer_end(*serializer);
+
+    if settings.game_window_initialized
+    {
+        rl.SetWindowPosition(xx settings.game_window_x, xx settings.game_window_y);
+        rl.SetWindowSize(xx settings.game_window_width, xx settings.game_window_height);
+    }
+
+    {
+        handle: = get_console_window_handle();
+        if settings.console_initialized && handle != null
+        {
+            set_window_position(handle, settings.console_x, settings.console_y, settings.console_width, settings.console_height);
+        }
+    }
+
+    {
+        handle: = get_debugger_window_handle();
+        if settings.debugger_initialized && handle != null
+        {
+            set_window_position(handle, settings.debugger_x, settings.debugger_y, settings.debugger_width, settings.debugger_height);
+        }
+    }
+
+    log("Loaded editor settings \"%\".", path, flags = .VERBOSE_ONLY);
+}
+
+
+save_editor_settings :: (path: string, settings: EditorSettings)
+{
+    serializer: JsonSerializer;
+
+    serializer_begin(*serializer, .WRITE);
+    serialize(*serializer, *settings);
+    serializer_end(*serializer);
+
+    json_serializer_write_json_file(*serializer, path);
+
+    last_editor_settings = settings;
+
+    log("Saved editor settings \"%\".", path, flags = .VERBOSE_ONLY);
+}
+
 load_game_settings :: (path: string, settings: *GameSettings)
 {
     serializer: JsonSerializer;
@@ -219,7 +357,7 @@ load_game_settings :: (path: string, settings: *GameSettings)
     serialize(*serializer, settings);
     serializer_end(*serializer);
 
-    log("Loaded settings \"%\".", path);
+    log("Loaded settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 save_game_settings :: (path: string, settings: *GameSettings)
@@ -232,7 +370,7 @@ save_game_settings :: (path: string, settings: *GameSettings)
 
     json_serializer_write_json_file(*serializer, path);
 
-    log("Saved settings \"%\".", path);
+    log("Saved settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 #import "File";
