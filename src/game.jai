@@ -131,7 +131,7 @@ game_update :: (using game: *Game, dt: float)
     resource_manager_update();
     settings_modified: = false;
 
-    if ImGui.Begin("settings")
+    if ImGui.Begin("settings", flags = .AlwaysVerticalScrollbar)
     {
         if imgui_edit("settings", *game.settings)
         {
@@ -165,7 +165,7 @@ game_update :: (using game: *Game, dt: float)
     {
         save_editor_settings(EDITOR_SETTINGS_PATH, editor_settings);
     }
-    ImGui.ShowDemoWindow();
+    // ImGui.ShowDemoWindow();
 }
 
 game_draw :: (using game: *Game)
