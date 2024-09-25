@@ -7,15 +7,15 @@
 		"points": [
 			{
 				"back_tangent": 0,
-				"front_tangent": 1,
+				"front_tangent": -0,
 				"position": [
 					0,
 					0
 				]
 			},
 			{
-				"back_tangent": -5,
-				"front_tangent": 0,
+				"back_tangent": -0.006373,
+				"front_tangent": -18.636969,
 				"position": [
 					1,
 					1
@@ -43,16 +43,16 @@
 			},
 			{
 				"backward_tangent": [
-					241.176178,
-					185
+					232.676208,
+					222.551575
 				],
 				"forward_tangent": [
-					206.550049,
-					32.999886
+					179.050049,
+					59.536339
 				],
 				"point": [
-					238.047516,
-					99.333305
+					210.547516,
+					125.869759
 				]
 			}
 		]
