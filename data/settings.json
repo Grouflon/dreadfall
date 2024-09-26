@@ -1,21 +1,19 @@
 {
 	"bird_acceleration": 1,
-	"bird_deceleration": 1,
-	"bird_max_speed": 8,
-	"curve": {
+	"bird_acceleration_curve": {
 		"extrapolation": "CLAMP",
 		"points": [
 			{
 				"back_tangent": 0,
-				"front_tangent": -0,
+				"front_tangent": 3.190351,
 				"position": [
 					0,
 					0
 				]
 			},
 			{
-				"back_tangent": -0.006373,
-				"front_tangent": -18.636969,
+				"back_tangent": 0,
+				"front_tangent": 0,
 				"position": [
 					1,
 					1
@@ -23,7 +21,29 @@
 			}
 		]
 	},
-	"curve_initialized": true,
+	"bird_deceleration": 1,
+	"bird_deceleration_curve": {
+		"extrapolation": "CLAMP",
+		"points": [
+			{
+				"back_tangent": 0,
+				"front_tangent": 0,
+				"position": [
+					0,
+					1
+				]
+			},
+			{
+				"back_tangent": -3.409659,
+				"front_tangent": 0,
+				"position": [
+					0.3,
+					0
+				]
+			}
+		]
+	},
+	"bird_max_speed": 8,
 	"spline": {
 		"is_looping": true,
 		"points": [
@@ -62,5 +82,26 @@
 		"selection_threshold": 5,
 		"tangent_handle_size": 5
 	},
-	"spline_initialized": true
+	"spline_initialized": true,
+	"test_curve": {
+		"extrapolation": "CLAMP",
+		"points": [
+			{
+				"back_tangent": 0,
+				"front_tangent": -2.731426,
+				"position": [
+					0.252125,
+					0.7375
+				]
+			},
+			{
+				"back_tangent": -3.652503,
+				"front_tangent": 0,
+				"position": [
+					0.967065,
+					0.097643
+				]
+			}
+		]
+	}
 }

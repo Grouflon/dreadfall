@@ -4,6 +4,7 @@ Bird :: struct
     speed: float;
     player: AnimationPlayer;
     last_direction: float;
+    timer: float;
 
     animations: *Spritesheet;
     texture: *Texture;

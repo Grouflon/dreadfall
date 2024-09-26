@@ -6,8 +6,10 @@ GameSettings :: struct
     bird_acceleration: float = 1.0; @drag @step=0.1 @min=0
     bird_deceleration: float = 1.0; @drag @step=0.1 @min=0
 
-    curve_initialized: bool = false;
-    curve: Curve;
+    test_curve: Curve;
+
+    bird_acceleration_curve: Curve;
+    bird_deceleration_curve: Curve;
 
     spline_initialized: bool = false;
     spline: Spline2D;
@@ -86,13 +88,6 @@ game_initialize :: (using game: *Game)
         spline_add_point(*settings.spline, .{200, 200}, .{300, 300});
         settings.spline.is_looping = true;
         settings.spline_initialized = true;
-    }
-
-    if !settings.curve_initialized
-    {
-        array_add(*settings.curve.points, .{ .{0,0}, 1.0, 0.0 });
-        array_add(*settings.curve.points, .{ .{1,1}, 0.0, -1.0 });
-        settings.curve_initialized = true;
     }
 
     save_game_settings(GAME_SETTINGS_PATH, *game.settings);
