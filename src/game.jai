@@ -128,7 +128,7 @@ game_update :: (using game: *Game, dt: float)
 
     if ImGui.Begin("settings", flags = .AlwaysVerticalScrollbar)
     {
-        if imgui_edit("settings", *game.settings)
+        if ImGui.EditValue("settings", *game.settings)
         {
             settings_modified = true;
         }
