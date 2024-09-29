@@ -324,7 +324,7 @@ load_editor_settings :: (path: string)
         }
     }
 
-    log("Loaded editor settings \"%\".", path, flags = .VERBOSE_ONLY);
+    if context.log_level >= .VERBOSE log("Loaded editor settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 
@@ -340,7 +340,7 @@ save_editor_settings :: (path: string, settings: EditorSettings)
 
     last_editor_settings = settings;
 
-    log("Saved editor settings \"%\".", path, flags = .VERBOSE_ONLY);
+    if context.log_level >= .VERBOSE log("Saved editor settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 load_game_settings :: (path: string, settings: *GameSettings)
@@ -352,7 +352,7 @@ load_game_settings :: (path: string, settings: *GameSettings)
     serialize(*serializer, settings);
     serializer_end(*serializer);
 
-    log("Loaded settings \"%\".", path, flags = .VERBOSE_ONLY);
+    if context.log_level >= .VERBOSE log("Loaded settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 save_game_settings :: (path: string, settings: *GameSettings)
@@ -365,7 +365,7 @@ save_game_settings :: (path: string, settings: *GameSettings)
 
     json_serializer_write_json_file(*serializer, path);
 
-    log("Saved settings \"%\".", path, flags = .VERBOSE_ONLY);
+    if context.log_level >= .VERBOSE log("Saved settings \"%\".", path, flags = .VERBOSE_ONLY);
 }
 
 #import "File";
