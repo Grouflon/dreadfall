@@ -1,5 +1,7 @@
 .build
-bin
+bin/windows/
+bin/wasm/dreadfall.wasm
+bin/wasm/dreadfall64.wasm
 *.sublime-workspace
 *.rdbg
 imgui.ini
