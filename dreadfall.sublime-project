@@ -18,16 +18,21 @@
 			"variants":
 			[
 				{
-					"name" : "build",
+					"name" : "windows - build",
 					"shell_cmd" : "jai build.jai - compile",
 				},
 				{
-					"name" : "build & run",
+					"name" : "windows - build & run",
 					"shell_cmd" : "jai build.jai - compile run",
 				},
 				{
-					"name" : "build & debug",
+					"name" : "windows - build & debug",
 					"shell_cmd" : "jai build.jai - compile debug",
+				},
+
+				{
+					"name" : "wasm - build",
+					"shell_cmd" : "jai build.jai - compile wasm",
 				},
 			]
 		}
