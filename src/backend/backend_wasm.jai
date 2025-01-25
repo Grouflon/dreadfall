@@ -104,7 +104,13 @@ on_key_event :: (key_code: u32, pressed: bool)
 
 pending_events : [..]Event;
 
-#import "Input";
+
+Window_Type :: *void;
+INVALID_WINDOW : Window_Type : null;
+#poke_name Input Window_Type;
+#poke_name Input INVALID_WINDOW;
+Input :: #import "Input";
+using Input;
 
 #scope_export
 
