@@ -137,6 +137,7 @@ wasm_alloc :: (size: s64) -> *void #c_call
 gl_load_wasm :: (procs: *GL_Procedures)
 {
     procs.glGetString = _glGetString;
+    procs.glGetIntegeri_v = _glGetIntegeri_v;
     procs.glGenVertexArrays = _glGenVertexArrays;
     procs.glBindVertexArray = _glBindVertexArray;
     procs.glVertexAttribPointer = _glVertexAttribPointer;
@@ -146,6 +147,8 @@ gl_load_wasm :: (procs: *GL_Procedures)
     procs.glBufferData = _glBufferData;
     procs.glClearColor = _glClearColor;
     procs.glClear = _glClear;
+    procs.glViewport = _glViewport;
+    procs.glScissor = _glScissor;
     procs.glCreateShader = _glCreateShader;
     procs.glShaderSource = _glShaderSource;
     procs.glCompileShader = _glCompileShader;
@@ -162,6 +165,7 @@ gl_load_wasm :: (procs: *GL_Procedures)
 }
 
 _glGetString :: (pname: GLenum) -> *GLubyte #foreign;
+_glGetIntegeri_v :: (target: GLenum, size: GLuint, data: *GLint) #foreign;
 _glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign;
 _glBindVertexArray :: (array: GLuint) #foreign;
 _glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign;
@@ -171,6 +175,8 @@ _glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign;
 _glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign;
 _glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign;
 _glClear :: (mask: GLbitfield) #foreign;
+_glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
+_glScissor :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
 _glCreateShader :: (type: GLenum) -> GLuint #foreign;
 _glShaderSource :: (shader: GLuint, count: GLsizei, str_array: **GLchar, length_array: *GLint) #foreign;
 _glCompileShader :: (shader: GLuint) #foreign;

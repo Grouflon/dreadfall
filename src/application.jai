@@ -67,6 +67,9 @@ application_start :: (parameters: ApplicationParameters)
     gl_version: = glGetString(GL_VERSION);
     log(tprint("Initialized OpenGL %", to_string(gl_version)));
 
+    glViewport(0, 0, xx parameters.width, xx parameters.height);
+    glScissor(0, 0, xx parameters.width, xx parameters.height);
+
     glGenVertexArrays(1, *vao);
     glGenBuffers(1, *vbo);
 

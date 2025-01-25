@@ -259,6 +259,17 @@ const gl_exports =
         return return_string(gl.getParameter(pname));
     },
 
+    _glGetIntegeri_v: (target, size, data) =>
+    {
+        data = Number(data);
+        const param = gl.getParameter(target);
+        console.assert(typeof param == "object");
+        for (i = 0; i < size; ++i)
+        {
+            write_u32(data+i*4, param[i]);
+        }
+    },
+
     _glGenVertexArrays: (n, arrays) =>
     {
         for (i = 0; i < n; ++i)
@@ -312,6 +323,16 @@ const gl_exports =
     _glClear: (mask) =>
     {
         gl.clear(mask);
+    },
+
+    _glViewport: (x, y, width, height) =>
+    {
+        gl.viewport(x, y, width, height);
+    },
+
+    _glScissor: (x, y, width, height) =>
+    {
+        gl.scissor(x, y, width, height);
     },
 
     _glCreateShader: (type) =>
@@ -426,6 +447,9 @@ const backend_exports =
         document.title = read_jstring(window_name);
 
         content.append(canvas);
+
+        canvas.width = Number(width);
+        canvas.height = Number(height);
         return 1n;
     },
 }
