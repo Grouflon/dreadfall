@@ -101,6 +101,7 @@ game_initialize :: (using game: *Game)
         font_size = 17,
     });
 
+    gather_actions("data");
     bird_init(*bird);
 }
 
@@ -135,6 +136,12 @@ game_update :: (using game: *Game, dt: float)
     }
     ImGui.End();
 
+    if ImGui.Begin("actions")
+    {
+        action_editor();
+    }
+    ImGui.End();
+
     viewport_update(*game.viewport);
 
     bird_update(*bird);
@@ -160,7 +167,7 @@ game_update :: (using game: *Game, dt: float)
     {
         save_editor_settings(EDITOR_SETTINGS_PATH, editor_settings);
     }
-    // ImGui.ShowDemoWindow();
+    ImGui.ShowDemoWindow();
 }
 
 game_draw :: (using game: *Game)

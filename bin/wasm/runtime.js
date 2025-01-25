@@ -1,6 +1,11 @@
 const text_decoder = new TextDecoder();
-let w = null; // the WASM module
+const text_encoder = new TextEncoder();
+let w; // the WASM module
 let canvas;
+let gl;
+
+const RETURN_BUFFER_SIZE = 1024n
+let return_buffer_ptr;
 
 const content = document.getElementById("content");
 
@@ -29,27 +34,98 @@ function make_environment(...envs)
     });
 }
 
-function ptr_to_float32(ptr)
+function read_float32(ptr)
 {
+    ptr = Number(ptr);
     const buffer = w.instance.exports.memory.buffer;
-    return new Float32Array(buffer)[Number(ptr)/4];
+    return new Float32Array(buffer)[ptr/4];
+}
+
+function read_u8(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    return new Uint8Array(buffer)[ptr];
+}
+
+function read_u64(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    return Number(new BigUint64Array(buffer, ptr, 8)[0]);
+}
+
+function read_color(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    const bytes = new Uint8Array(buffer);
+    return {
+        r: bytes[ptr],
+        g: bytes[ptr+1],
+        b: bytes[ptr+2],
+        a: bytes[ptr+3],
+    }
+}
+
+function read_jstring(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    const count = read_u64(ptr);
+    const str_ptr = read_u64(ptr+8);
+    const bytes = new Uint8Array(buffer, str_ptr, count);
+    return text_decoder.decode(bytes);
+}
+
+function read_cstring(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    const bytes = new Uint8Array(buffer, ptr, strlen(ptr));
+    return text_decoder.decode(bytes);
+}
+
+function write_u32(ptr, n)
+{
+    console.assert(typeof n == "number", "n is not a number", n);
+    console.assert(n >= 0, "%f is not an unsigned number", n);
+    ptr = Number(ptr);
+    
+    const buffer = w.instance.exports.memory.buffer;
+    const bytes = new Uint8Array(buffer);
+    const n_bytes = number_to_ubytes(n).slice(0,4);
+    bytes.set(n_bytes, ptr);
 }
 
 function strlen(ptr, max_size = 256)
 {
+    ptr = Number(ptr);
     const buffer = w.instance.exports.memory.buffer;
     const bytes = new Uint8Array(buffer);
-    ptr = Number(ptr);
     end = ptr;
     while (bytes[end] != 0 && end < ptr + max_size) { ++end; }
     return end - ptr;
 }
 
-function c_string_to_js_string(ptr)
+function number_to_ubytes(x)
 {
+    // stolen here: https://stackoverflow.com/questions/8482309/converting-javascript-integer-to-byte-array-and-back
+    // but reversed endianness
+    // Don't know if it is actually robust or not + we surely need a different algorithm for signed and unsigned
+    let y= Math.floor(x/2**32);
+    return [(x<<24),(x<<16),(x<<8),x,(y<<24),(y<<16),(y<<8),y].map(z=> z>>>24)
+}
+
+function return_string(str)
+{
+    const str_bytes = text_encoder.encode(str);
+    console.assert(str_bytes.byteLength < RETURN_BUFFER_SIZE, "string \"%s\" is too long for the return buffer of %d bytes", str, RETURN_BUFFER_SIZE);
     const buffer = w.instance.exports.memory.buffer;
-    const bytes = new Uint8Array(buffer, Number(ptr), strlen(ptr));
-    return text_decoder.decode(bytes);
+    var bytes = new Uint8Array(buffer);
+    bytes.set(str_bytes, Number(return_buffer_ptr));
+    bytes.set(0, Number(return_buffer_ptr) + str_bytes.byteLength);
+    return return_buffer_ptr;
 }
 
 // console.log and console.error always add newlines so we need to buffer the output from write_string
@@ -93,8 +169,8 @@ function write_to_console_log(str, to_standard_error) {
     }
 }
 
-// Core program foreign functions
-const core =
+// Jai foreign functions
+const jai_exports =
 {
     wasm_write_string: (s_count, s_data, to_standard_error) =>
     {
@@ -109,8 +185,76 @@ const core =
     {
         debugger;
     },
+}
 
-    wasm_create_window: (width, height, window_name, background_color, wanted_msaa) =>
+const gl_exports =
+{
+    create_opengl_context: () =>
+    {
+        gl = canvas.getContext("webgl2");
+
+        // Resources containers since webgl does not use indices
+        gl.vaos = new Array();
+        gl.vaos.push(null);
+
+        gl.vbos = new Array();
+        gl.vbos.push(null);
+    },
+
+    _glGetString: (pname) =>
+    {
+        return return_string(gl.getParameter(pname));
+    },
+
+    _glGenVertexArrays: (n, arrays) =>
+    {
+        for (i = 0; i < n; ++i)
+        {
+            gl.vaos.push(gl.createVertexArray());
+            write_u32(Number(arrays) + i, gl.vaos.length - 1);
+        }
+    },
+
+    _glBindVertexArray(array)
+    {
+        array = Number(array);
+        let vao = gl.vaos[array];
+        console.assert(vao, "undefined vertex array %d", array);
+        gl.bindVertexArray(vao);
+    },
+
+    _glGenBuffers: (n, buffers) =>
+    {
+        for (i = 0; i < n; ++i)
+        {
+            gl.vbos.push(gl.createBuffer());
+            write_u32(Number(buffers) + i, gl.vbos.length - 1);
+        }
+    },
+
+    _glBindBuffer(target, buffer)
+    {
+        buffer = Number(buffer);
+        let vbo = gl.vbos[buffer];
+        console.assert(vbo, "undefined buffer %d", buffer);
+        gl.bindBuffer(target, vbo);
+    },
+
+    _glClearColor: (r, g, b, a) =>
+    {
+        gl.clearColor(r, g, b, a);
+    },
+
+    _glClear: (mask) =>
+    {
+        gl.clear(mask);
+    },
+}
+
+// Backend foreign functions
+const backend_exports =
+{
+    create_window: (width, height, window_name, background_color) =>
     {
         canvas = document.createElement("canvas");
         canvas.id = "window";
@@ -118,12 +262,10 @@ const core =
         canvas.style.cssText += "max-width:" + width + "px;";
         canvas.style.cssText += "max-height:" + height + "px;";
 
-        var r = Math.floor(ptr_to_float32(background_color) * 255);
-        var g = Math.floor(ptr_to_float32(background_color+4n) * 255);
-        var b = Math.floor(ptr_to_float32(background_color+8n) * 255);
-        canvas.style.cssText += "background-color: rgb("+r+","+g+","+b+");";
+        background_color = read_color(background_color);
+        canvas.style.cssText += "background-color: rgb("+background_color.r+","+background_color.g+","+background_color.b+");";
 
-        document.title = c_string_to_js_string(window_name);
+        document.title = read_jstring(window_name);
 
         content.append(canvas);
         return 1n;
@@ -133,18 +275,21 @@ const core =
 // Load the WASM file we compiled and run its main.
 WebAssembly.instantiateStreaming(
     fetch("dreadfall.wasm"),
-    { "env": make_environment(core) }
+    { "env": make_environment(jai_exports, gl_exports, backend_exports) }
 ).then(
     (obj) => {
         w = obj;
-        console.log(w);
-        console.log(w.instance.exports);
+        // console.log(w);
+        // console.log(w.instance.exports);
 
+        const wasm_alloc = find_name_by_regexp(w.instance.exports, "wasm_alloc");
         const on_wasm_update = find_name_by_regexp(w.instance.exports, "on_wasm_update");
         const on_wasm_keydown = find_name_by_regexp(w.instance.exports, "on_wasm_keydown");
         const on_wasm_keyup = find_name_by_regexp(w.instance.exports, "on_wasm_keyup");
 
-        obj.instance.exports.main(0, BigInt(0));
+        return_buffer_ptr = wasm_alloc(RETURN_BUFFER_SIZE);
+
+        obj.instance.exports.main(0, 0n);
 
         let _previous_timestamp = null;
 

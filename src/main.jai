@@ -1,3 +1,11 @@
+Color :: struct
+{
+    r: u8;
+    g: u8;
+    b: u8;
+    a: u8;
+}
+
 main :: ()
 {
     params: = ApplicationParameters.{
@@ -47,8 +55,10 @@ dreadfall_shutdown :: ()
 
 // #import "yae";
 #import "Basic";
-#load "application.jai";
 #import "Input";
+
+#load "backend/backend.jai";
+#load "application.jai";
 
 // // Build Parameters
 // DEBUG_MEMORY :: true;

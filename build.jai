@@ -22,7 +22,7 @@ build :: ()
 
     compile := array_find(args, "compile");
     run := array_find(args, "run");
-    debug := array_find(args, "debug");
+    release := array_find(args, "release");
     wasm := array_find(args, "wasm");
 
     // Set build type
@@ -94,7 +94,7 @@ build :: ()
     }
     
 
-    if debug
+    if release
     {
         set_optimization(*options, .DEBUG);
     }
@@ -134,7 +134,7 @@ build :: ()
         case .WINDOWS;
         {
             exe_path: = tprint("%/%.exe", output_path, BUILD_NAME);
-            if debug
+            if release
             {
                 cmd: []string = .[
                     "remedybg", "-g", "-q",

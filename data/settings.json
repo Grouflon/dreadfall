@@ -3,76 +3,44 @@
 	"bird_acceleration_curve": {
 		"extrapolation": "CLAMP",
 		"points": [
-			{
-				"back_tangent": 0,
-				"front_tangent": 3.190351,
-				"position": [
-					0,
-					0
-				]
-			},
-			{
-				"back_tangent": 0,
-				"front_tangent": 0,
-				"position": [
-					1,
-					1
-				]
-			}
 		]
 	},
 	"bird_deceleration": 1,
 	"bird_deceleration_curve": {
 		"extrapolation": "CLAMP",
 		"points": [
-			{
-				"back_tangent": 0,
-				"front_tangent": 0,
-				"position": [
-					0,
-					1
-				]
-			},
-			{
-				"back_tangent": -3.409659,
-				"front_tangent": 0,
-				"position": [
-					0.3,
-					0
-				]
-			}
 		]
 	},
-	"bird_max_speed": 4,
+	"bird_max_speed": 8,
 	"spline": {
 		"is_looping": true,
 		"points": [
 			{
 				"backward_tangent": [
-					36.476135,
-					199.111359
+					114,
+					8
 				],
 				"forward_tangent": [
-					87.013718,
-					193.872635
+					-17,
+					105.5
 				],
 				"point": [
-					24.697418,
-					78.000061
+					35,
+					48
 				]
 			},
 			{
 				"backward_tangent": [
-					176.176239,
-					233.06601
+					55.277527,
+					212.000031
 				],
 				"forward_tangent": [
-					237.550079,
-					92.581718
+					185.857513,
+					146.000061
 				],
 				"point": [
-					211.047546,
-					147.900009
+					116.896271,
+					183.666656
 				]
 			}
 		]
@@ -88,18 +56,18 @@
 		"points": [
 			{
 				"back_tangent": 0,
-				"front_tangent": -2.731426,
+				"front_tangent": 0.048607,
 				"position": [
-					0.252125,
-					0.7375
+					1.675948,
+					2.32737
 				]
 			},
 			{
-				"back_tangent": -3.652503,
+				"back_tangent": -0.424758,
 				"front_tangent": 0,
 				"position": [
-					0.967065,
-					0.097643
+					4.89821,
+					3.87847
 				]
 			}
 		]
