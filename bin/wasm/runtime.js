@@ -48,6 +48,13 @@ function read_u8(ptr)
     return new Uint8Array(buffer)[ptr];
 }
 
+function read_u32(ptr)
+{
+    ptr = Number(ptr);
+    const buffer = w.instance.exports.memory.buffer;
+    return new Uint32Array(buffer, ptr, 4)[0];
+}
+
 function read_u64(ptr)
 {
     ptr = Number(ptr);
@@ -68,22 +75,38 @@ function read_color(ptr)
     }
 }
 
+function read_string(ptr, length)
+{
+    ptr = Number(ptr);
+    length = Number(length);
+    const buffer = w.instance.exports.memory.buffer;
+    const bytes = new Uint8Array(buffer, ptr, length);
+    return text_decoder.decode(bytes);
+}
+
 function read_jstring(ptr)
 {
     ptr = Number(ptr);
     const buffer = w.instance.exports.memory.buffer;
     const count = read_u64(ptr);
     const str_ptr = read_u64(ptr+8);
-    const bytes = new Uint8Array(buffer, str_ptr, count);
-    return text_decoder.decode(bytes);
+    return read_string(str_ptr, count);
 }
 
 function read_cstring(ptr)
 {
     ptr = Number(ptr);
+    return read_string(ptr, strlen(ptr));
+}
+
+function write_cstring(ptr, str)
+{
+    console.assert(typeof str == "string", "str is not a string", str);
+    const str_bytes = text_encoder.encode(str);
     const buffer = w.instance.exports.memory.buffer;
-    const bytes = new Uint8Array(buffer, ptr, strlen(ptr));
-    return text_decoder.decode(bytes);
+    var bytes = new Uint8Array(buffer);
+    bytes.set(str_bytes, Number(ptr));
+    bytes.set(0, Number(ptr) + str_bytes.byteLength);
 }
 
 function write_u32(ptr, n)
@@ -119,12 +142,8 @@ function number_to_ubytes(x)
 
 function return_string(str)
 {
-    const str_bytes = text_encoder.encode(str);
-    console.assert(str_bytes.byteLength < RETURN_BUFFER_SIZE, "string \"%s\" is too long for the return buffer of %d bytes", str, RETURN_BUFFER_SIZE);
-    const buffer = w.instance.exports.memory.buffer;
-    var bytes = new Uint8Array(buffer);
-    bytes.set(str_bytes, Number(return_buffer_ptr));
-    bytes.set(0, Number(return_buffer_ptr) + str_bytes.byteLength);
+    console.assert(str.length < RETURN_BUFFER_SIZE, "string \"%s\" is too long for the return buffer of %d bytes", str, RETURN_BUFFER_SIZE);
+    write_cstring(return_buffer_ptr, str);
     return return_buffer_ptr;
 }
 
@@ -196,9 +215,43 @@ const gl_exports =
         // Resources containers since webgl does not use indices
         gl.vaos = new Array();
         gl.vaos.push(null);
+        gl.get_vao = (array_index) =>
+        {
+            array_index = Number(array_index);
+            let vao = gl.vaos[array_index];
+            console.assert(vao, "undefined vertex array %d", array_index);
+            return vao;
+        }
 
         gl.vbos = new Array();
         gl.vbos.push(null);
+        gl.get_vbo = (buffer_index) =>
+        {
+            buffer_index = Number(buffer_index);
+            let vbo = gl.vbos[buffer_index];
+            console.assert(vbo, "undefined buffer %d", buffer_index);
+            return vbo;
+        }
+
+        gl.shaders = new Array();
+        gl.shaders.push(null);
+        gl.get_shader = (shader_index) =>
+        {
+            shader_index = Number(shader_index);
+            let shader = gl.shaders[shader_index];
+            console.assert(shader, "undefined shader %d", shader_index);
+            return shader;
+        }
+
+        gl.programs = new Array();
+        gl.programs.push(null);
+        gl.get_program = (program_index) =>
+        {
+            program_index = Number(program_index);
+            let program = gl.programs[program_index];
+            console.assert(program, "undefined program %d", program_index);
+            return program;
+        }
     },
 
     _glGetString: (pname) =>
@@ -215,12 +268,19 @@ const gl_exports =
         }
     },
 
-    _glBindVertexArray(array)
+    _glBindVertexArray: (array_index)  =>
     {
-        array = Number(array);
-        let vao = gl.vaos[array];
-        console.assert(vao, "undefined vertex array %d", array);
-        gl.bindVertexArray(vao);
+        gl.bindVertexArray(gl.get_vao(array_index));
+    },
+
+    _glVertexAttribPointer : (index, size, type, normalized, stride, pointer) =>
+    {
+        gl.vertexAttribPointer(index, size, type, normalized, Number(stride), Number(pointer));
+    },
+
+    _glEnableVertexAttribArray : (index) =>
+    {
+        gl.enableVertexAttribArray(index);
     },
 
     _glGenBuffers: (n, buffers) =>
@@ -232,12 +292,16 @@ const gl_exports =
         }
     },
 
-    _glBindBuffer(target, buffer)
+    _glBindBuffer(target, buffer_index)
     {
-        buffer = Number(buffer);
-        let vbo = gl.vbos[buffer];
-        console.assert(vbo, "undefined buffer %d", buffer);
-        gl.bindBuffer(target, vbo);
+        gl.bindBuffer(target, gl.get_vbo(buffer_index));
+    },
+
+    _glBufferData : (target, size, data, usage) =>
+    {
+        const buffer = w.instance.exports.memory.buffer;
+        const bytes = new Uint8Array(buffer, Number(data), Number(size));
+        gl.bufferData(target, bytes, usage);
     },
 
     _glClearColor: (r, g, b, a) =>
@@ -248,6 +312,100 @@ const gl_exports =
     _glClear: (mask) =>
     {
         gl.clear(mask);
+    },
+
+    _glCreateShader: (type) =>
+    {
+        gl.shaders.push(gl.createShader(type));
+        return gl.shaders.length - 1;
+    },
+
+    _glShaderSource: (shader_index, count, str_array, length_array) =>
+    {
+        let final_source = "";
+        for (i = 0; i < count; ++i)
+        {
+            const str = read_u64(Number(str_array) + i);
+            const len = read_u32(Number(length_array) + i);
+            const source = read_string(str, len);
+            final_source += source;
+        }
+
+        gl.shaderSource(gl.get_shader(shader_index), final_source);
+    },
+
+    _glCompileShader: (shader_index) =>
+    {
+        gl.compileShader(gl.get_shader(shader_index));
+    },
+
+    _glGetShaderiv: (shader_index, pname, params) =>
+    {
+        let param = gl.getShaderParameter(gl.get_shader(shader_index), pname);
+        if (typeof param == "boolean")
+        {
+            param = param ? 1 : 0;
+        }
+        write_u32(params, param);
+    },
+
+    _glGetShaderInfoLog: (shader_index, buf_size, length, info_log_ptr) =>
+    {
+        let info_log = gl.getShaderInfoLog(gl.get_shader(shader_index));
+
+        info_log = info_log.substring(0, Math.min(info_log.length, buf_size - 1));
+        write_cstring(info_log_ptr, info_log);
+        write_u32(length, info_log.length);
+    },
+
+    _glDeleteShader: (shader_index) =>
+    {
+        gl.deleteShader(gl.get_shader(shader_index));
+    },
+
+    _glCreateProgram: () =>
+    {
+        gl.programs.push(gl.createProgram());
+        return gl.programs.length - 1;
+    },
+
+    _glAttachShader: (program_index, shader_index) =>
+    {
+        gl.attachShader(gl.get_program(program_index), gl.get_shader(shader_index));
+    },
+
+    _glLinkProgram: (program_index) =>
+    {
+        gl.linkProgram(gl.get_program(program_index));
+    },
+
+    _glGetProgramiv: (program_index, pname, params) =>
+    {
+        let param = gl.getProgramParameter(gl.get_program(program_index), pname);
+        if (typeof param == "boolean")
+        {
+            param = param ? 1 : 0;
+        }
+        write_u32(params, param);
+    },
+
+    _glGetProgramInfoLog: (program_index, buf_size, length, info_log_ptr) =>
+    {
+        let info_log = gl.getProgramInfoLog(gl.get_program(program_index));
+
+        info_log = info_log.substring(0, Math.min(info_log.length, buf_size - 1));
+        write_cstring(info_log_ptr, info_log);
+        write_u32(length, info_log.length);
+    },
+
+    _glUseProgram: (program_index) =>
+    {
+        gl.useProgram(gl.get_program(program_index));
+    },
+
+    _glDrawArrays: (mode, first, count) =>
+    {
+        gl.drawArrays(mode, first, count);
     },
 }
 

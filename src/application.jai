@@ -68,58 +68,56 @@ application_start :: (parameters: ApplicationParameters)
     log(tprint("Initialized OpenGL %", to_string(gl_version)));
 
     glGenVertexArrays(1, *vao);
-    log("%", vao);
     glGenBuffers(1, *vbo);
-    log("%", vbo);
 
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTICES.count * size_of(Vector3), VERTICES.data, GL_STATIC_DRAW);
 
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * size_of(float), null);
-    // glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * size_of(float), null);
+    glEnableVertexAttribArray(0);
 
-    // compile_shader :: (shader: GLuint, src: *u8, src_length: s32)
-    // {
-    //     glShaderSource(shader, 1, *src, *src_length);
-    //     glCompileShader(shader);
-    //     success: GLint;
-    //     glGetShaderiv(shader, GL_COMPILE_STATUS, *success);
-    //     if (!success)
-    //     {
-    //         info_log: [512]u8;
-    //         size: GLsizei;
-    //         glGetShaderInfoLog(shader, 512, *size, info_log.data);
-    //         info: = string.{ size, info_log.data };
-    //         log(tprint("Shader Compilation Failed: %", info));
-    //     }
-    // }
+    compile_shader :: (shader: GLuint, src: *u8, src_length: s32)
+    {
+        glShaderSource(shader, 1, *src, *src_length);
+        glCompileShader(shader);
+        success: GLint;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, *success);
+        if (!success)
+        {
+            info_log: [512]u8;
+            size: GLsizei;
+            glGetShaderInfoLog(shader, 512, *size, info_log.data);
+            info: = string.{ size, info_log.data };
+            log(tprint("Shader Compilation Failed: %", info));
+        }
+    }
 
-    // vertex_shader: = glCreateShader(GL_VERTEX_SHADER);
-    // compile_shader(vertex_shader, VERTEX_SHADER_SRC.data, xx VERTEX_SHADER_SRC.count);
+    vertex_shader: = glCreateShader(GL_VERTEX_SHADER);
+    compile_shader(vertex_shader, VERTEX_SHADER_SRC.data, xx VERTEX_SHADER_SRC.count);
 
-    // fragment_shader: = glCreateShader(GL_FRAGMENT_SHADER);
-    // compile_shader(fragment_shader, FRAGMENT_SHADER_SRC.data, xx FRAGMENT_SHADER_SRC.count);
+    fragment_shader: = glCreateShader(GL_FRAGMENT_SHADER);
+    compile_shader(fragment_shader, FRAGMENT_SHADER_SRC.data, xx FRAGMENT_SHADER_SRC.count);
 
-    // shader_program = glCreateProgram();
-    // glAttachShader(shader_program, vertex_shader);
-    // glAttachShader(shader_program, fragment_shader);
-    // glLinkProgram(shader_program);
+    shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
 
-    // success: GLint;
-    // glGetProgramiv(shader_program, GL_LINK_STATUS, *success);
-    // if (!success)
-    // {
-    //     info_log: [512]u8;
-    //     size: GLsizei;
-    //     glGetProgramInfoLog(shader_program, 512, *size, info_log.data);
-    //     info: = string.{ size, info_log.data };
-    //     log(tprint("Program Link Failed: %", info));
-    // }
+    success: GLint;
+    glGetProgramiv(shader_program, GL_LINK_STATUS, *success);
+    if (!success)
+    {
+        info_log: [512]u8;
+        size: GLsizei;
+        glGetProgramInfoLog(shader_program, 512, *size, info_log.data);
+        info: = string.{ size, info_log.data };
+        log(tprint("Program Link Failed: %", info));
+    }
 
-    // glDeleteShader(vertex_shader);
-    // glDeleteShader(fragment_shader); 
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader); 
 
     if app.init_function != null then app.init_function();
 
@@ -185,9 +183,9 @@ application_update :: (dt: float32)
     glClearColor(0.0, 1.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // glUseProgram(shader_program);
-    // glBindVertexArray(vao);
-    // glDrawArrays(GL_TRIANGLES, 0, 3);
+    glUseProgram(shader_program);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     swap_buffers(app.window);
 }
