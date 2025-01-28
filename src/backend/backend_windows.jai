@@ -4,7 +4,6 @@ create_window :: (width: int, height: int, window_name: string, background_color
     return create_window(width, height, window_name, background_color_rgb = rgb);
 }
 
-
 update_input_events :: ()
 {
     update_window_events();
@@ -27,9 +26,27 @@ swap_buffers :: (window: *void)
     SwapBuffers(dc);
 }
 
+load_texture_data :: (filename: string, allocator: *Allocator) -> TextureData
+{
+    push_allocator(allocator);
+
+    width, height, channels: s32;
+    data: = stbi_load(temp_c_string(filename), *width, *height, *channels, 4);
+    if data == null { return .{}; }
+
+    texture_data: TextureData;
+    texture_data.data = data;
+    texture_data.width = xx width;
+    texture_data.height = xx height;
+    texture_data.channels = xx channels;
+    return texture_data;
+}
+
 #scope_file
 
 #import "Input";
 #import "Window_Creation";
-#import "GL";
+#import "GL"(DUMP_GL_ERRORS = true);
 #import "Windows";
+#import "File";
+#import "stb_image";

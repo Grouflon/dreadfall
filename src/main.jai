@@ -8,6 +8,16 @@ Color :: struct
 
 main :: ()
 {
+    #if OS != .WASM
+    {
+        // normalize working directory
+        {
+            exe_directory: = path_strip_filename(get_path_of_running_executable());
+            root_directory: = tprint("%/../..", exe_directory);
+            set_working_directory(root_directory);
+        }
+    }
+
     params: = ApplicationParameters.{
         width = 800,
         height = 600,
@@ -56,6 +66,8 @@ dreadfall_shutdown :: ()
 // #import "yae";
 #import "Basic";
 #import "Input";
+#import "String";
+#import "System";
 
 #load "backend/backend.jai";
 #load "application.jai";

@@ -9,6 +9,13 @@ let return_buffer_ptr;
 
 const content = document.getElementById("content");
 
+// calls to wasm
+let wasm_alloc;
+let on_wasm_update;
+let on_wasm_preload_end;
+let on_wasm_keydown;
+let on_wasm_keyup;
+
 function find_name_by_regexp(exports, prefix)
 {
     const re = new RegExp('^'+prefix+'_[0-9a-z]+$');
@@ -119,6 +126,16 @@ function write_u32(ptr, n)
     const bytes = new Uint8Array(buffer);
     const n_bytes = number_to_ubytes(n).slice(0,4);
     bytes.set(n_bytes, ptr);
+}
+
+function write_u64(ptr, n)
+{
+    console.assert(typeof n == "bigint", "n is not a BigInt", n);
+    console.assert(n >= 0, "%f is not an unsigned number", n);
+    const buffer = w.instance.exports.memory.buffer;
+    const bytes = new Uint8Array(buffer);
+    const n_bytes = number_to_ubytes(Number(n)).slice(0,8);
+    bytes.set(n_bytes, Number(ptr));
 }
 
 function strlen(ptr, max_size = 256)
@@ -252,10 +269,32 @@ const gl_exports =
             console.assert(program, "undefined program %d", program_index);
             return program;
         }
+        gl.current_program = null;
+
+        gl.textures = new Array();
+        gl.textures.push(null);
+        gl.get_texture = (texture_index) =>
+        {
+            texture_index = Number(texture_index);
+            let texture = gl.textures[texture_index];
+            console.assert(texture, "undefined texture %d", texture_index);
+            return texture;
+        }
+
+        gl.locations = new Array();
+        gl.locations_map = new Object();
+        gl.get_location = (location_index) =>
+        {
+            location_index = Number(location_index);
+            let location = gl.locations[location_index];
+            console.assert(location, "undefined location %d", location_index);
+            return location;
+        }
     },
 
     _glGetString: (pname) =>
     {
+        // TODO: might be better to just use the temp allocator to do that
         return return_string(gl.getParameter(pname));
     },
 
@@ -421,15 +460,77 @@ const gl_exports =
 
     _glUseProgram: (program_index) =>
     {
-        gl.useProgram(gl.get_program(program_index));
+        const program = gl.get_program(program_index)
+        gl.useProgram(program);
     },
 
     _glDrawArrays: (mode, first, count) =>
     {
         gl.drawArrays(mode, first, count);
     },
+
+    _glActiveTexture: (texture) =>
+    {
+        gl.activeTexture(texture);
+    },
+
+    _glGenTextures: (n, textures) =>
+    {
+        for (i = 0; i < n; ++i)
+        {
+            gl.textures.push(gl.createTexture());
+            write_u32(Number(textures) + i, gl.textures.length - 1);
+        }
+    },
+
+    _glBindTexture: (target, texture_index) =>
+    {
+        gl.bindTexture(target, gl.get_texture(texture_index));
+    },
+
+    _glTexParameteri: (target, pname, param) =>
+    {
+        gl.texParameteri(target, pname, param);
+    },
+
+    _glTexImage2D: (target, level, internalformat, width, height, border, format, type, pixels) =>
+    {
+        console.assert(internalformat == gl.RGBA8, "only RGBA8 internal format supported so far");
+        console.assert(format == gl.RGBA, "only RGBA format supported so far");
+
+        const buffer = w.instance.exports.memory.buffer;
+        pixel_data = new Uint8Array(buffer, Number(pixels), width * height * 4);
+        gl.texImage2D(target, level, internalformat, width, height, border, format, type, pixel_data);
+    },
+
+    _glGetUniformLocation: (program_index, name) =>
+    {
+        name = read_cstring(name);
+        const key = program_index + "_" + name;
+        let location_index = gl.locations_map[key];
+        if (location_index == null)
+        {
+            const program = gl.get_program(program_index);
+            const location = gl.getUniformLocation(program, name);
+
+            if (location == null) return -1;
+
+            gl.locations.push(location);
+            location_index = gl.locations.length - 1;
+            gl.locations_map[key] = location_index;
+        }
+
+        return location_index;
+    },
+
+    _glUniform1i: (location_index, v0) =>
+    {
+        gl.uniform1i(gl.get_location(location_index), v0);
+    },
 }
 
+let preload_done = false;
+preload_data = {};
 // Backend foreign functions
 const backend_exports =
 {
@@ -452,6 +553,59 @@ const backend_exports =
         canvas.height = Number(height);
         return 1n;
     },
+
+    load_texture_data: (out, filename, allocator) =>
+    {
+        filename = read_jstring(filename);
+        const image_data = preload_data[filename];
+        if (image_data != null)
+        {
+            const data_ptr = wasm_alloc(BigInt(image_data.data.byteLength), allocator);
+
+            const buffer = w.instance.exports.memory.buffer;
+            const data = new Uint8Array(buffer, Number(data_ptr), image_data.data.byteLength);
+            data.set(image_data.data);
+
+            // return struct:
+            // TextureData :: struct
+            // {
+            //     data: *u8;
+            //     width: u32;
+            //     height: u32;
+            //     channels: u32;
+            // }
+            write_u64(out, data_ptr);
+            write_u32(out + 8n, image_data.width);
+            write_u32(out + 12n, image_data.height);
+            write_u32(out + 16n, 4);
+        }
+    },
+
+    wasm_preload: (filename) =>
+    {
+        filename = read_jstring(filename);
+        if (filename != "")
+        {
+            const img = new Image();
+            img.src = filename;
+            done = false;
+            img.decode().then(() =>
+            {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                preload_data[filename] = ctx.getImageData(0, 0, img.width, img.height);
+
+                preload_done = true; 
+            });
+        }
+        else
+        {
+            preload_done = true; 
+        }
+    },
 }
 
 // Load the WASM file we compiled and run its main.
@@ -464,16 +618,18 @@ WebAssembly.instantiateStreaming(
         // console.log(w);
         // console.log(w.instance.exports);
 
-        const wasm_alloc = find_name_by_regexp(w.instance.exports, "wasm_alloc");
-        const on_wasm_update = find_name_by_regexp(w.instance.exports, "on_wasm_update");
-        const on_wasm_keydown = find_name_by_regexp(w.instance.exports, "on_wasm_keydown");
-        const on_wasm_keyup = find_name_by_regexp(w.instance.exports, "on_wasm_keyup");
+        wasm_alloc = find_name_by_regexp(w.instance.exports, "wasm_alloc");
+        on_wasm_update = find_name_by_regexp(w.instance.exports, "on_wasm_update");
+        on_wasm_preload_end = find_name_by_regexp(w.instance.exports, "on_wasm_preload_end");
+        on_wasm_keydown = find_name_by_regexp(w.instance.exports, "on_wasm_keydown");
+        on_wasm_keyup = find_name_by_regexp(w.instance.exports, "on_wasm_keyup");
 
-        return_buffer_ptr = wasm_alloc(RETURN_BUFFER_SIZE);
+        return_buffer_ptr = wasm_alloc(RETURN_BUFFER_SIZE, 0n);
 
         obj.instance.exports.main(0, 0n);
 
         let _previous_timestamp = null;
+        let _previous_preload_done = false;
 
         function first_frame(timestamp)
         {
@@ -485,7 +641,19 @@ WebAssembly.instantiateStreaming(
         {
             var dt = (timestamp - _previous_timestamp) * 0.001;
             _previous_timestamp = timestamp;
-            on_wasm_update(dt);
+
+            if (preload_done && !_previous_preload_done)
+            {
+                console.log("preload ended");
+                on_wasm_preload_end();
+            }
+            _previous_preload_done = preload_done;
+
+            if (preload_done)
+            {
+                on_wasm_update(dt);
+            }
+
             window.requestAnimationFrame(update_frame);
         }
 

@@ -44,7 +44,7 @@ build :: ()
 
     options.output_type                         = .EXECUTABLE;
     options.os_target                           = os_target;
-    options.emit_debug_info                     = .DWARF;
+    options.emit_debug_info                     = .DEFAULT;
     options.output_executable_name              = BUILD_NAME;
     options.output_path                         = output_path;
 
@@ -94,7 +94,7 @@ build :: ()
     }
     
 
-    if release
+    if !release
     {
         set_optimization(*options, .DEBUG);
     }

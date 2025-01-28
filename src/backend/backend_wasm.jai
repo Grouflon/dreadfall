@@ -47,6 +47,9 @@ swap_buffers :: (window: *void)
 
 }
 
+load_texture_data :: (filename: string, allocator: *Allocator) -> TextureData #foreign;
+
+
 #scope_file
 wasm_to_jai_key_code :: (key_code: u32) -> Key_Code
 {
@@ -131,13 +134,24 @@ on_wasm_keyup :: (key_code: u32) #c_call
     }
 }
 
-wasm_alloc :: (size: s64) -> *void #c_call
+wasm_alloc :: (size: s64, allocator: *Allocator) -> *void #c_call
 {
     push_context
     {
-        return alloc(size);
+        if (allocator)
+        {
+            push_allocator(allocator);
+            return alloc(size);
+        }
+        else
+        {
+            return alloc(size);
+        }
     }
 }
+
+// make it a file list
+wasm_preload :: (file: string) #foreign;
 
 // GL bindings
 gl_load_wasm :: (procs: *GL_Procedures)
@@ -168,6 +182,14 @@ gl_load_wasm :: (procs: *GL_Procedures)
     procs.glGetProgramInfoLog = _glGetProgramInfoLog;
     procs.glUseProgram = _glUseProgram;
     procs.glDrawArrays = _glDrawArrays;
+    procs.glActiveTexture = _glActiveTexture;
+    procs.glGenTextures = _glGenTextures;
+    procs.glBindTexture = _glBindTexture;
+    procs.glTexParameteri = _glTexParameteri;
+    procs.glTexImage2D = _glTexImage2D;
+    procs.glGetUniformLocation = _glGetUniformLocation;
+    procs.glUniform1i = _glUniform1i;
+
 }
 
 _glGetString :: (pname: GLenum) -> *GLubyte #foreign;
@@ -196,3 +218,10 @@ _glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign;
 _glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign;
 _glUseProgram :: (program: GLuint) #foreign;
 _glDrawArrays :: (mode: GLenum, first: GLint, count: GLsizei) #foreign;
+_glActiveTexture :: (texture: GLenum) #foreign;
+_glGenTextures :: (n: GLsizei, textures: *GLuint) #foreign;
+_glBindTexture :: (target: GLenum, texture: GLuint) #foreign;
+_glTexParameteri :: (target: GLenum, pname: GLenum, param: GLint) #foreign;
+_glTexImage2D :: (target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type: GLenum, pixels: *void) #foreign;
+_glGetUniformLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign;
+_glUniform1i :: (location: GLint, v0: GLint) #foreign;
